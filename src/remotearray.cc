@@ -76,7 +76,10 @@ private:
 
     /* connect: create a connection with the server */
     if (connect(sockfd, (struct sockaddr *)&serveraddr, sizeof(serveraddr)) < 0)  {
-      perror("Error connecting");
+#if _WIN32
+		printf("found windows error %d\n", WSAGetLastError());
+#endif
+		perror("Error connecting");
       exit(1);
     }
     flush(true);
@@ -85,7 +88,10 @@ private:
   void send_data(void* dat, size_t sz) {
     int n = send(sockfd, (const char*)dat, sz, 0);
     if (n < 0) {
-      perror("Error writing");
+#if _WIN32
+		printf("found windows error %d\n", WSAGetLastError());
+#endif
+		perror("Error writing");
       exit(1);
     }
   }

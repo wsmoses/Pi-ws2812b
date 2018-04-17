@@ -10,27 +10,26 @@ def Color(red, green, blue, white = 0):
 class Adafruit_NeoPixel(object):
     def __init__(self, num, ip, port):
         from remotearray import RemoteLED
-        self._leds = RemoteLED(ip, port, num)
+        self._led_data = RemoteLED(ip, port, num)
         atexit.register(self._cleanup)
 
     def _cleanup(self):
         # Clean up memory used by the library when not needed anymore.
-        if self._leds is not None:
-            #ws.delete_ws2811_t(self._leds)
-            #self._leds = None
-            #self._channel = None
+        if self._led_data is not None:
+            self._led_data.close()
+            self._led_data = None
             pass
 
     def begin(self):
         pass
 
     def show(self):
-        self._leds.flush()
+        self._led_data.flush()
 
     def setPixelColor(self, n, color):
         """Set LED at position n to the provided 24-bit color value (in RGB order).
         """
-        self._leds[n] = color
+        self._led_data[n] = color
 
     def setPixelColorRGB(self, n, red, green, blue, white = 0):
         """Set LED at position n to the provided red, green, and blue color.
@@ -43,12 +42,12 @@ class Adafruit_NeoPixel(object):
         """Return an object which allows access to the LED display data as if
         it were a sequence of 24-bit RGB values.
         """
-        return self._leds
+        return self._led_data
 
     def numPixels(self):
         """Return the number of pixels in the display."""
-        return len(self._leds)
+        return len(self._led_data)
 
     def getPixelColor(self, n):
         """Get the 24-bit RGB color value for the LED at position n."""
-        return self._leds[n]
+        return self._led_data[n]
