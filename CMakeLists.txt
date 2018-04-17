@@ -9,7 +9,14 @@ message(STATUS "binary dir ${NEOCLIENT_BINARY_DIR}")
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third-party/pybind11)
 pybind11_add_module(remotearray src/remotearray.cc)
+
+if (WIN32)
+target_link_libraries(remotearray
+    PRIVATE
+	ws2_32
+)
+else()
 target_link_libraries(remotearray
     PRIVATE
 )
-
+endif()
