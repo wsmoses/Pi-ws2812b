@@ -44,11 +44,15 @@ private:
 #endif
 	void init_network() {
 #if _WIN32
-	  int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
-	  if (iResult != 0) {
-		  printf("WSAStartup failed with error: %d\n", iResult);
-		  exit(1);
-	  }
+		static bool startedup = false;
+		if (!startedup) {
+			int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+			if (iResult != 0) {
+				printf("WSAStartup failed with error: %d\n", iResult);
+				exit(1);
+			}
+			startedup = true;
+		}
 #endif
     /* socket: create the socket */
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -92,15 +96,20 @@ private:
 		printf("found windows error %d\n", WSAGetLastError());
 #endif
 		perror("Error writing");
-      exit(1);
+		close();
+		init_network();
     }
   }
 
 public:
   void close() {
     if (sockfd > 0) {
-      ::close(sockfd);
-      sockfd = -1;
+#if _WIN32
+		::closesocket(sockfd);
+#else
+		::close(sockfd);
+#endif
+		sockfd = -1;
     }
   }
 
