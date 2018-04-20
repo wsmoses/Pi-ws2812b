@@ -1,5 +1,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/numpy.h>
 #include <string>
 #include <iostream>
 
@@ -148,7 +149,17 @@ typedef uint32_t ws2811_led_t;                   //< 0xWWRRGGBB
 
 PYBIND11_MODULE(remotearray, m) {
 
-  py::class_<RemoteArray<ws2811_led_t>>(m,"RemoteLED")
+  py::class_<RemoteArray<ws2811_led_t>>(m,"RemoteLED", py::buffer_protocol())
+	.def_buffer([](RemoteArray<ws2811_led_t> &m) -> py::buffer_info {
+		  return py::buffer_info(
+			  m.data(),                               /* Pointer to buffer */
+			  sizeof(ws2811_led_t),                          /* Size of one scalar */
+			  py::format_descriptor<ws2811_led_t>::format(), /* Python struct-style format descriptor */
+			  1,                                      /* Number of dimensions */
+			  { m.size() },                 /* Buffer dimensions */
+			  { sizeof(ws2811_led_t) }             /* Strides (in bytes) for each index */
+		);
+	})
     .def(py::init<std::string, int, size_t>())
     .def(py::init<std::string, int, size_t, ws2811_led_t>())
     //.def(py::init<const std::vector<float>&>())
@@ -160,7 +171,25 @@ PYBIND11_MODULE(remotearray, m) {
         if (i >= d.size()) throw py::index_error();
         return d[i] = value;
     })
-    .def("__iter__", [](const RemoteArray<ws2811_led_t>& s) { return py::make_iterator(s.begin(), s.end()); },
+	.def("__setitem__", [](RemoteArray<ws2811_led_t> &s, py::slice slice, py::array_t<ws2811_led_t> &value) {
+		size_t start, stop, step, slicelength;
+		if (!slice.compute(s.size(), &start, &stop, &step, &slicelength))
+			throw py::error_already_set();
+		if (slicelength != value.size())
+			throw std::runtime_error("Left and right hand size of slice assignment have different sizes!");
+		const auto buf = value.request();
+
+		if (buf.ndim != 1)
+			throw std::runtime_error("Number of dimensions must be one");
+
+		const auto ptr = (const ws2811_led_t*)buf.ptr;
+
+		for (size_t i = 0; i < slicelength; ++i) {
+			s[start] = ptr[i];
+			start += step;
+		}
+	})
+	.def("__iter__", [](const RemoteArray<ws2811_led_t>& s) { return py::make_iterator(s.begin(), s.end()); },
                      py::keep_alive<0, 1>() /* Essential: keep object alive while iterator exists */)
     .def("__len__", &RemoteArray<ws2811_led_t>::size)
     .def("flush", &RemoteArray<ws2811_led_t>::flush, py::arg("force") = false)
